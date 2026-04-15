@@ -1,0 +1,5 @@
+{
+  "name": "ACS Live Dashboard",
+  "description": "Real-time construction site monitoring dashboard integrated with Access Control Systems (ACS). Shows live occupancy, entry/exit stats, and category breakdowns.",
+  "requestFramePermissions": []
+}

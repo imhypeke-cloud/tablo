@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIVE Табло Стройплощадки</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      padding: 30px 0;
+      border-bottom: 2px solid rgba(255,255,255,0.1);
+      margin-bottom: 30px;
+    }
+
+    .site-name {
+      font-size: 3rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(0,217,255,0.3);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { filter: brightness(1); }
+      to { filter: brightness(1.2); }
+    }
+
+    .current-time {
+      font-size: 1.5rem;
+      color: #8892b0;
+      margin-top: 10px;
+    }
+
+    /* Main Stats Grid */
+    .main-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 40px rgba(0,217,255,0.2);
+    }
+
+    .stat-card.primary {
+      background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(0,255,136,0.1));
+      border-color: rgba(0,217,255,0.3);
+    }
+
+    .stat-card.primary::before {
+      height: 6px;
+    }
+
+    .stat-label {
+      font-size: 1.1rem;
+      color: #8892b0;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      font-size: 4rem;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .stat-card.primary .stat-value {
+      background: linear-gradient(90deg, #00d9ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-change {
+      font-size: 1rem;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .stat-change.positive { color: #00ff88; }
+    .stat-change.negative { color: #ff6b6b; }
+
+    /* Categories Section */
+    .categories-section {
+      margin-bottom: 40px;
+    }
+
+    .section-title {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+      color: #ccd6f6;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .category-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 15px;
+      padding: 25px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s ease;
+    }
+
+    .category-card:hover {
+      background: rgba(255,255,255,0.08);
+      transform: scale(1.02);
+    }
+
+    .category-icon {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .category-name {
+      font-size: 1rem;
+      color: #8892b0;
+      margin-bottom: 10px;
+    }
+
+    .category-count {
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+
+    .category-card.worker .category-count { color: #ffd93d; }
+    .category-card.itr .category-count { color: #6bcb77; }
+    .category-card.contractor .category-count { color: #4d96ff; }
+    .category-card.guest .category-count { color: #ff6b6b; }
+
+    /* Weather Widget */
+    .weather-widget {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      border-radius: 20px;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 40px;
+    }
+
+    .weather-main {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .weather-icon {
+      font-size: 4rem;
+    }
+
+    .weather-temp {
+      font-size: 3.5rem;
+      font-weight: bold;
+    }
+
+    .weather-desc {
+      font-size: 1.3rem;
+      color: #8892b0;
+    }
+
+    .weather-details {
+      display: flex;
+      gap: 30px;
+      text-align: center;
+    }
+
+    .weather-detail {
+      color: #8892b0;
+    }
+
+    .weather-detail-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ccd6f6;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      margin-top: auto;
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      color: #8892b0;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #00ff88;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.disconnected {
+      background: #ff6b6b;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Loading State */
+    .loading {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .site-name { font-size: 2rem; }
+      .stat-value { font-size: 3rem; }
+      .weather-widget { flex-direction: column; gap: 20px; }
+      .weather-details { gap: 15px; }
+    }
+
+    /* Animation for updates */
+    @keyframes flash {
+      0% { background-color: transparent; }
+      50% { background-color: rgba(0,255,136,0.2); }
+      100% { background-color: transparent; }
+    }
+
+    .updated {
+      animation: flash 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="site-name" id="siteName">СТРОЙПЛОЩАДКА A</h1>
+      <div class="current-time" id="currentTime">--:--:--</div>
+    </header>
+
+    <!-- Main Statistics -->
+    <div class="main-stats">
+      <div class="stat-card primary">
+        <div class="stat-label">👥 Сейчас на площадке</div>
+        <div class="stat-value" id="totalInside">0</div>
+        <div class="stat-change" id="insideChange"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">✅ Зашло сегодня</div>
+        <div class="stat-value" id="totalEntries">0</div>
+        <div class="stat-change positive" id="entriesChange"></div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">🚪 Вышло сегодня</div>
+        <div class="stat-value" id="totalExits">0</div>
+        <div class="stat-change negative" id="exitsChange"></div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <section class="categories-section">
+      <h2 class="section-title">📊 По категориям</h2>
+      <div class="categories-grid">
+        <div class="category-card worker">
+          <div class="category-icon">👷</div>
+          <div class="category-name">Рабочие</div>
+          <div class="category-count" id="catWorker">0</div>
+        </div>
+
+        <div class="category-card itr">
+          <div class="category-icon">👔</div>
+          <div class="category-name">ИТР / ИТС</div>
+          <div class="category-count" id="catItr">0</div>
+        </div>
+
+        <div class="category-card contractor">
+          <div class="category-icon">🏗️</div>
+          <div class="category-name">Подрядчики</div>
+          <div class="category-count" id="catContractor">0</div>
+        </div>
+
+        <div class="category-card guest">
+          <div class="category-icon">👤</div>
+          <div class="category-name">Гости</div>
+          <div class="category-count" id="catGuest">0</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Weather -->
+    <div class="weather-widget">
+      <div class="weather-main">
+        <div class="weather-icon" id="weatherIcon">🌤️</div>
+        <div>
+          <div class="weather-temp" id="weatherTemp">+18°C</div>
+          <div class="weather-desc" id="weatherDesc">Ясно</div>
+        </div>
+      </div>
+      <div class="weather-details">
+        <div class="weather-detail">
+          <div class="weather-detail-value" id="weatherHumidity">65%</div>
+          <div>Влажность</div>
+        </div>
+        <div class="weather-detail">
+          <div class="weather-detail-value" id="weatherPressure">760</div>
+          <div>мм рт.ст.</div>
+        </div>
+        <div class="weather-detail">
+          <div class="weather-detail-value" id="weatherWind">3.5 м/с</div>
+          <div>Ветер</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="connection-status">
+        <div class="status-dot" id="connectionDot"></div>
+        <span id="connectionStatus">Подключение...</span>
+      </div>
+      <div id="lastUpdate">Обновление: --:--:--</div>
+      <div>WebSocket: <span id="wsStatus">Active</span></div>
+    </div>
+  </div>
+
+  <script>
+    // Configuration
+    const API_URL = window.location.origin;
+    let socket = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 10;
+
+    // DOM Elements
+    const elements = {
+      siteName: document.getElementById('siteName'),
+      currentTime: document.getElementById('currentTime'),
+      totalInside: document.getElementById('totalInside'),
+      totalEntries: document.getElementById('totalEntries'),
+      totalExits: document.getElementById('totalExits'),
+      catWorker: document.getElementById('catWorker'),
+      catItr: document.getElementById('catItr'),
+      catContractor: document.getElementById('catContractor'),
+      catGuest: document.getElementById('catGuest'),
+      weatherIcon: document.getElementById('weatherIcon'),
+      weatherTemp: document.getElementById('weatherTemp'),
+      weatherDesc: document.getElementById('weatherDesc'),
+      weatherHumidity: document.getElementById('weatherHumidity'),
+      weatherPressure: document.getElementById('weatherPressure'),
+      weatherWind: document.getElementById('weatherWind'),
+      connectionDot: document.getElementById('connectionDot'),
+      connectionStatus: document.getElementById('connectionStatus'),
+      lastUpdate: document.getElementById('lastUpdate'),
+    };
+
+    // Update clock
+    function updateClock() {
+      const now = new Date();
+      elements.currentTime.textContent = now.toLocaleTimeString('ru-RU');
+      elements.lastUpdate.textContent = 'Обновление: ' + now.toLocaleTimeString('ru-RU');
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Connect to WebSocket
+    function connectWebSocket() {
+      socket = io(API_URL, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ Connected to WebSocket');
+        elements.connectionDot.classList.remove('disconnected');
+        elements.connectionStatus.textContent = 'Подключено';
+        elements.wsStatus.textContent = 'Active';
+        reconnectAttempts = 0;
+      });
+
+      socket.on('disconnect', () => {
+        console.log('❌ Disconnected from WebSocket');
+        elements.connectionDot.classList.add('disconnected');
+        elements.connectionStatus.textContent = 'Отключено';
+        elements.wsStatus.textContent = 'Disconnected';
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        reconnectAttempts++;
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+          elements.connectionStatus.textContent = 'Ошибка подключения';
+        }
+      });
+
+      // Receive dashboard updates
+      socket.on('dashboard-update', (data) => {
+        console.log('📊 Dashboard update received:', data);
+        updateDashboard(data);
+      });
+
+      // Receive access events
+      socket.on('access-event', (event) => {
+        console.log('🚪 Access event:', event);
+        // Could add visual notification here
+      });
+    }
+
+    // Update dashboard with new data
+    function updateDashboard(data) {
+      // Animate number changes
+      animateValue(elements.totalInside, parseInt(data.totalInside) || 0);
+      animateValue(elements.totalEntries, parseInt(data.totalEntriesToday) || 0);
+      animateValue(elements.totalExits, parseInt(data.totalExitsToday) || 0);
+
+      // Categories
+      if (data.categories) {
+        animateValue(elements.catWorker, data.categories.worker || 0);
+        animateValue(elements.catItr, data.categories.itr || 0);
+        animateValue(elements.catContractor, data.categories.contractor || 0);
+        animateValue(elements.catGuest, data.categories.guest || 0);
+      }
+
+      // Weather
+      if (data.weather) {
+        elements.weatherTemp.textContent = `+${data.weather.temp}°C`;
+        elements.weatherDesc.textContent = data.weather.description || 'Нет данных';
+        elements.weatherIcon.textContent = getWeatherIcon(data.weather.icon);
+        elements.weatherHumidity.textContent = `${data.weather.humidity}%`;
+        elements.weatherPressure.textContent = data.weather.pressure || '---';
+        elements.weatherWind.textContent = `${data.weather.windSpeed} м/с`;
+      }
+
+      // Site name
+      if (data.siteName) {
+        elements.siteName.textContent = data.siteName;
+      }
+
+      // Visual feedback
+      document.querySelector('.container').classList.add('updated');
+      setTimeout(() => {
+        document.querySelector('.container').classList.remove('updated');
+      }, 500);
+    }
+
+    // Animate number change
+    function animateValue(element, newValue) {
+      const currentValue = parseInt(element.textContent) || 0;
+      if (currentValue === newValue) return;
+
+      const diff = newValue - currentValue;
+      const duration = 500;
+      const steps = 20;
+      const stepValue = diff / steps;
+      const stepDuration = duration / steps;
+
+      let currentStep = 0;
+      const timer = setInterval(() => {
+        currentStep++;
+        element.textContent = Math.round(currentValue + stepValue * currentStep);
+        
+        if (currentStep >= steps) {
+          clearInterval(timer);
+          element.textContent = newValue;
+        }
+      }, stepDuration);
+    }
+
+    // Get weather icon emoji
+    function getWeatherIcon(iconCode) {
+      const icons = {
+        '01d': '☀️', '01n': '🌙',
+        '02d': '⛅', '02n': '☁️',
+        '03d': '☁️', '03n': '☁️',
+        '04d': '☁️', '04n': '☁️',
+        '09d': '🌧️', '09n': '🌧️',
+        '10d': '🌦️', '10n': '🌧️',
+        '11d': '⛈️', '11n': '⛈️',
+        '13d': '❄️', '13n': '❄️',
+        '50d': '🌫️', '50n': '🌫️',
+      };
+      return icons[iconCode] || '🌤️';
+    }
+
+    // Initial fetch
+    async function fetchInitialData() {
+      try {
+        const response = await fetch(`${API_URL}/api/dashboard`);
+        const data = await response.json();
+        updateDashboard(data);
+      } catch (error) {
+        console.error('Failed to fetch initial data:', error);
+      }
+    }
+
+    // Initialize
+    function init() {
+      console.log('🚀 Initializing dashboard...');
+      fetchInitialData();
+      connectWebSocket();
+    }
+
+    // Start when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+    // Handle page visibility changes (for TV screens)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        console.log('Page visible, refreshing...');
+        fetchInitialData();
+      }
+    });
+
+    // Auto-reload every hour (safety measure)
+    setInterval(() => {
+      location.reload();
+    }, 3600000);
+  </script>
+</body>
+</html>

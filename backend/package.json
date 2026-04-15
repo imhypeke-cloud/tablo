@@ -1,0 +1,29 @@
+{
+  "name": "construction-dashboard-backend",
+  "version": "1.0.0",
+  "description": "Backend для LIVE-табло стройплощадки с интеграцией СКУД",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node src/migrate.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "fastify": "^4.24.3",
+    "@fastify/cors": "^8.4.1",
+    "@fastify/websocket": "^8.3.1",
+    "pg": "^8.11.3",
+    "socket.io": "^4.7.2",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "redis": "^4.6.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

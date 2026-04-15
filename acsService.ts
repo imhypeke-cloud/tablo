@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-const API_BASE = process.env.ACS_API_URL || 'https://api.acs-gateway.com'; // URL шлюза из переменных окружения или по умолчанию
+const API_BASE = process.env.ACS_API_URL || 'https://192.168.2.7'; // URL шлюза из переменных окружения или по умолчанию
 const API_KEY = process.env.ACS_API_KEY || '42517013';
 const API_SECRET = process.env.ACS_API_SECRET || 'zBYGou3vZWhidMyMQHfd';
 

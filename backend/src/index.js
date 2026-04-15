@@ -58,6 +58,22 @@ app.get('/api/dashboard', async (req, res) => {
  */
 app.post('/api/access-event', async (req, res) => {
   try {
+    // Проверка токена безопасности (если настроен)
+    const authHeader = req.headers.authorization;
+    const tokenHeader = req.headers['x-skud-token'];
+    
+    if (config.skudToken) {
+      const isValidToken = 
+        authHeader === `Bearer ${config.skudToken}` ||
+        tokenHeader === config.skudToken;
+      
+      if (!isValidToken) {
+        return res.status(401).json({
+          error: 'Unauthorized: Invalid or missing SKUD token',
+        });
+      }
+    }
+
     const {
       employee_id,
       employeeId,

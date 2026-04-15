@@ -47,6 +47,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: construction_backend
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -58,9 +60,12 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       WEATHER_API_KEY: ${WEATHER_API_KEY:-}
+      WEATHER_SECRET: ${WEATHER_SECRET:-}
       WEATHER_LAT: ${WEATHER_LAT:-55.7558}
       WEATHER_LON: ${WEATHER_LON:-37.6173}
+      DEFAULT_CITY: ${DEFAULT_CITY:-Moscow}
       SITE_NAME: ${SITE_NAME:-СТРОЙПЛОЩАДКА A}
+      SKUD_WEBHOOK_TOKEN: ${SKUD_WEBHOOK_TOKEN:-}
     ports:
       - "3000:3000"
     depends_on:

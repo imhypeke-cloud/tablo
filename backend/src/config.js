@@ -29,10 +29,15 @@ export const config = {
   // Weather API
   weather: {
     apiKey: process.env.WEATHER_API_KEY || '',
-    lat: process.env.WEATHER_LAT || '55.7558',
+    apiSecret: process.env.WEATHER_SECRET || '', // Секретный ключ (если требуется для расширенных функций)
+    lat: process.env.WEATHER_LAT || '55.7558', // Москва по умолчанию
     lon: process.env.WEATHER_LON || '37.6173',
-    updateInterval: parseInt(process.env.WEATHER_UPDATE_INTERVAL || '600000', 10),
+    city: process.env.DEFAULT_CITY || 'Moscow',
+    updateInterval: parseInt(process.env.WEATHER_UPDATE_INTERVAL || '600000', 10), // 10 минут
   },
+  
+  // СКУД токен безопасности
+  skudToken: process.env.SKUD_WEBHOOK_TOKEN || '',
   
   // CORS
   corsOrigin: process.env.CORS_ORIGIN || '*',

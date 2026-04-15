@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "name": "acs-live-dashboard",
+  "builds": [
+    {
+      "src": "server.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.ts"
+    }
+  ],
+  "env": {
+    "ACS_API_KEY": "@acs_api_key",
+    "ACS_API_SECRET": "@acs_api_secret",
+    "ACS_API_URL": "@acs_api_url"
+  },
+  "regions": ["fra1"],
+  "functions": {
+    "server.ts": {
+      "maxDuration": 60
+    }
+  }
+}
